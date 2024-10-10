@@ -17,17 +17,20 @@ import MyPositionsTableOrganism from '@/ui/organisms/table-positions';
 import { useAccount } from 'wagmi';
 import type { GetStaticProps, InferGetStaticPropsType } from 'next';
 import { augustSdk } from '@/config/august-sdk';
-import { Collapse } from '@mui/material';
+import { Collapse, Grid, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { FALLBACK_TOKEN_IMG } from '@/utils/constants/ui';
+import PieChart from '@/ui/organisms/pie-charts';
+import {
+  getProtocolExposureData,
+  getTokenExposureData,
+} from '@/utils/helpers/charts';
 
 export async function getStaticPaths() {
-  // Call an external API endpoint to get posts
   const paths = await Promise.all(
     Object.keys(augustSdk.providers).map(async (chain) => {
       augustSdk.switchNetwork(Number(chain) as IChainId);
       const res = await augustSdk.pools.getPools();
-      // Get the paths we want to pre-render based on posts
       return res.map((p) => ({
         params: { address: p.address, chain_id: chain },
       }));
@@ -38,7 +41,6 @@ export async function getStaticPaths() {
 }
 
 export const getStaticProps = (async (context) => {
-  // Pass data to the page via props
   return {
     props: {
       chain_id: Number(context?.params?.chain_id) as IChainId,
@@ -53,10 +55,12 @@ export const getStaticProps = (async (context) => {
 const PoolPage = (params: InferGetStaticPropsType<typeof getStaticProps>) => {
   const { address } = useAccount();
   const [walletConnected, setWalletConnected] = useState(false);
+  const [protocolData, setProtocolData] = useState<any>(null);
+  const [tokenData, setTokenData] = useState<any>(null);
 
   const { data: pool, isLoading: poolLoading } = useFetcher({
     queryKey: ['lending-pool', params.pool, String(params.chain_id)],
-  }) as UseQueryResult<any>; // TODO: interface
+  }) as UseQueryResult<any>;
 
   const { data: positions, isLoading: positionsLoading } = useFetcher({
     queryKey: ['my-positions', params.pool],
@@ -68,21 +72,22 @@ const PoolPage = (params: InferGetStaticPropsType<typeof getStaticProps>) => {
         (p: IPoolWithUnderlying) => p.address === pool?.address,
       );
     },
-  }) as UseQueryResult<any>; // TODO: interface
+  }) as UseQueryResult<any>;
 
   useEffect(() => {
     if (address) setWalletConnected(true);
     else setWalletConnected(false);
   }, [address]);
 
-  // function buildCrumbs(): IBreadCumb[] {
-  //   return [
-  //     {
-  //       text: 'Earn',
-  //       href: '/',
-  //     },
-  //   ];
-  // }
+  useEffect(() => {
+    if (pool) {
+      const protocolExposureData = getProtocolExposureData(pool);
+      const tokenExposureData = getTokenExposureData(pool);
+
+      setProtocolData(protocolExposureData);
+      setTokenData(tokenExposureData);
+    }
+  }, [pool]);
 
   return (
     <Base>
@@ -91,9 +96,10 @@ const PoolPage = (params: InferGetStaticPropsType<typeof getStaticProps>) => {
         title={pool?.name ?? ' '}
         description={
           pool?.description ||
-          `${pool?.name} vault aims to optimize ${pool?.underlying?.symbol || 'its underlying deposit token'} yield by providing liquidity to blue chip DeFi protocols and maximizing future airdrop potential.`
+          `${pool?.name} vault aims to optimize ${
+            pool?.underlying?.symbol || 'its underlying deposit token'
+          } yield by providing liquidity to blue chip DeFi protocols and maximizing future airdrop potential.`
         }
-        // breadcrumbs={buildCrumbs()}
         loading={+poolLoading}
         chainId={pool?.chainId}
         action={
@@ -119,6 +125,7 @@ const PoolPage = (params: InferGetStaticPropsType<typeof getStaticProps>) => {
         <Stack gap={3}>
           <Stack direction="column" gap={6} mt={2}>
             <VaultInfo {...pool} loading={+poolLoading} />
+
             <Collapse in={walletConnected && Boolean(positions?.length)}>
               <MyPositionsTableOrganism
                 title="My Positions"
@@ -126,6 +133,55 @@ const PoolPage = (params: InferGetStaticPropsType<typeof getStaticProps>) => {
                 loading={+positionsLoading}
               />
             </Collapse>
+
+            {protocolData && tokenData && (
+              <Grid
+                container
+                spacing={4}
+                my={{
+                  xs: 2,
+                  md: 4,
+                }}
+                justifyContent="space-around"
+              >
+                <Grid
+                  item
+                  xs={12}
+                  sm={6}
+                  style={{
+                    height: '400px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'column',
+                  }}
+                >
+                  <PieChart data={protocolData} />
+                  <Typography variant="h6" mt={2} mb={{ xs: 0, md: 1 }}>
+                    Protocol Exposure
+                  </Typography>
+                </Grid>
+
+                <Grid
+                  item
+                  xs={12}
+                  sm={6}
+                  style={{
+                    height: '400px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'column',
+                  }}
+                >
+                  <PieChart data={tokenData} />
+                  <Typography variant="h6" mt={2} mb={{ xs: 0, md: 1 }}>
+                    Token Exposure
+                  </Typography>
+                </Grid>
+              </Grid>
+            )}
+
             <VaultAllocation {...pool} loading={poolLoading} />
           </Stack>
         </Stack>
