@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { IAddress, INormalizedNumber } from '@augustdigital/sdk';
+import type { IAddress, IChainId, INormalizedNumber } from '@augustdigital/sdk';
 
 export type IActions = 'deposit' | 'approve' | 'withdraw' | 'redeem';
 
@@ -52,4 +52,25 @@ export type IAssetDisplay = {
   loading?: boolean;
   chainId?: number;
   tooltip?: boolean;
+};
+
+export type IDepositLog = {
+  pool: string;
+  token: string;
+  chain: string;
+  amount_native: string;
+  amount_usd: string;
+  eoa: string;
+  tx_id: string;
+};
+
+export type IDepositLogData = {
+  pool_address: IAddress;
+  pool_name: string;
+  token_address: IAddress;
+  token_symbol: string;
+  chain: IChainId;
+  amount_native: string;
+  eoa: IAddress;
+  tx_id: string;
 };

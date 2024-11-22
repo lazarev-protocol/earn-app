@@ -18,6 +18,7 @@ export default function DepositModalMolecule(
     ...inInputProps,
     asset: props?.asset,
     pool: props?.address,
+    poolName: props?.name,
     chainId: props?.chainId as IChainId,
   });
 

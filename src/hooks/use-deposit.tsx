@@ -3,6 +3,7 @@ import ToastPromise from '@/ui/molecules/toast-promise';
 import { TIMES } from '@/utils/constants/time';
 import { BUTTON_TEXTS } from '@/utils/constants/ui';
 import { DEVELOPMENT_MODE } from '@/utils/constants/web3';
+import type { IDepositLogData } from '@/utils/types';
 import type { IAddress, IChainId } from '@augustdigital/sdk';
 import { ABI_LENDING_POOLS, toNormalizedBn } from '@augustdigital/sdk';
 import { useEffect, useRef, useState } from 'react';
@@ -23,6 +24,7 @@ type IUseDepositProps = {
   asset?: IAddress;
   clearInput?: () => void;
   pool?: IAddress;
+  poolName?: string;
   closeModal?: () => void;
   chainId?: IChainId;
 };
@@ -161,6 +163,25 @@ export default function useDeposit(props: IUseDepositProps) {
           depositHash,
         );
       }
+
+      // log to google sheet
+      const res = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/log-action`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pool_address: props.pool,
+          pool_name: props.poolName,
+          token_address: props.asset,
+          token_symbol: symbol,
+          chain: props.chainId,
+          amount_native: normalized.normalized,
+          eoa: address,
+          tx_id: depositHash,
+        } as IDepositLogData),
+      });
+      console.log('#handleDeposit::logDeposit:', res.status);
     } catch (e) {
       console.error('#handleDeposit:', e);
       if (String(e).toLowerCase().includes('user rejected')) {

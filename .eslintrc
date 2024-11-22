@@ -35,6 +35,7 @@
             "endOfLine": "auto",
           },
         ],
+        "@typescript-eslint/naming-convention": "off",
         "consistent-return": "warn",
         "no-nested-ternary": "warn",
         "no-console": "off",
